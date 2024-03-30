@@ -20,7 +20,7 @@ var camera *core.Camera
 func init() {
 	runtime.LockOSThread()
 
-	camera = core.NewCamera(mgl32.Vec3{0.0, 0.0, 3.0}, mgl32.Vec3{0.0, 1.0, 0.0}, -90.0, 0.0)
+	camera = core.NewCamera(mgl32.Vec3{0.0, 0.0, 3.0}, mgl32.Vec3{0.0, 1.0, 0.0})
 }
 
 func main() {
@@ -70,7 +70,7 @@ func main() {
 
 	shader.Use()
 	shader.SetInt("texture1", 0)
-	shader.SetInt("texture2", 0)
+	shader.SetInt("texture2", 1)
 
 	// Configure the vertex data
 	var vao uint32
@@ -112,21 +112,24 @@ func main() {
 		{-1.3, 1.0, -1.5}}
 
 	angle := 0.0
-	previousTime := glfw.GetTime()
+	lastTick := glfw.GetTime()
+	delta := 0.0
 
 	for !window.ShouldClose() {
+		processInput(window, delta)
+
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		// Update
 		time := glfw.GetTime()
-		elapsed := time - previousTime
-		previousTime = time
+		delta = time - lastTick
+		lastTick = time
 
 		texture1.Use()
 		texture2.Use()
 		shader.Use()
 
-		angle += elapsed
+		angle += delta
 		view := camera.GetViewMatrix()
 		view = view.Mul4(mgl32.Translate3D(0, 0, -3))
 		projection := mgl32.Perspective(mgl32.DegToRad(camera.Fov), float32(windowWidth/windowHeight), 0.1, 100)
@@ -151,6 +154,30 @@ func main() {
 		// Maintenance
 		window.SwapBuffers()
 		glfw.PollEvents()
+	}
+}
+
+func isPressing(key glfw.Key) bool {
+	return glfw.GetCurrentContext().GetKey(key) == glfw.Press
+}
+
+func processInput(window *glfw.Window, delta float64) {
+	if isPressing(glfw.KeyEscape) {
+		window.SetShouldClose(true)
+		glfw.Terminate()
+	}
+	if isPressing(glfw.KeyW) {
+		fmt.Println("Foward: ", delta)
+		camera.Move(core.Forward, float32(delta))
+	}
+	if isPressing(glfw.KeyS) {
+		camera.Move(core.Backward, float32(delta))
+	}
+	if isPressing(glfw.KeyA) {
+		camera.Move(core.Left, float32(delta))
+	}
+	if isPressing(glfw.KeyD) {
+		camera.Move(core.Right, float32(delta))
 	}
 }
 

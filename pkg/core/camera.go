@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
@@ -18,6 +17,14 @@ const (
 	Backward
 	Left
 	Right
+)
+
+const (
+	YAW         = -90.0
+	PITCH       = 0.0
+	SPEED       = 2.5
+	SENSITIVITY = 0.05
+	ZOOM        = 45.0
 )
 
 type Camera struct {
@@ -39,7 +46,7 @@ type Camera struct {
 	lastYMousePos  float32
 }
 
-func NewCamera(position, up mgl32.Vec3, yaw, pitch float32) *Camera {
+func NewCameraCAxis(position, up mgl32.Vec3, yaw, pitch float32) *Camera {
 
 	camera := &Camera{
 		Position: position,
@@ -47,10 +54,21 @@ func NewCamera(position, up mgl32.Vec3, yaw, pitch float32) *Camera {
 		Yaw:      yaw,
 		Pitch:    pitch,
 
-		Fov: 45,
+		Fov:              45,
+		MovementSpeed:    SPEED,
+		MouseSensitivity: SENSITIVITY,
 
 		firstMouseMove: true,
 	}
+
+	camera.updateCameraVectors()
+
+	return camera
+}
+
+func NewCamera(position, up mgl32.Vec3) *Camera {
+
+	camera := NewCameraCAxis(position, up, YAW, PITCH)
 
 	camera.updateCameraVectors()
 
@@ -70,13 +88,13 @@ func (c *Camera) Move(direction CameraMove, deltaTime float32) {
 	velocity := c.MovementSpeed * deltaTime
 	switch direction {
 	case Forward:
-		c.Position.Add(c.Front.Mul(velocity))
+		c.Position = c.Position.Add(c.Front.Mul(velocity))
 	case Backward:
-		c.Position.Sub(c.Front.Mul(velocity))
+		c.Position = c.Position.Sub(c.Front.Mul(velocity))
 	case Right:
-		c.Position.Sub(c.Right.Mul(velocity))
+		c.Position = c.Position.Add(c.Right.Mul(velocity))
 	case Left:
-		c.Position.Add(c.Right.Mul(velocity))
+		c.Position = c.Position.Sub(c.Right.Mul(velocity))
 	default:
 		log.Fatalf("invalid camera direction: %d\n", direction)
 	}
@@ -88,8 +106,6 @@ func (c *Camera) Look(xoffset, yoffset float32, constrainPitch bool) {
 
 	c.Yaw += xoffset
 	c.Pitch += yoffset
-
-	fmt.Println(c.Yaw, c.Pitch)
 
 	if constrainPitch {
 		if c.Pitch > 89.0 {
@@ -140,7 +156,4 @@ func (c *Camera) updateCameraVectors() {
 
 	c.Right = c.Front.Cross(c.WorldUp)
 	c.Up = c.Right.Normalize().Cross(c.Front)
-
-	fmt.Println(c.Yaw, c.Pitch, c.Front, c.Right, c.Up)
-
 }
