@@ -5,6 +5,7 @@ import (
 	"image/draw"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
@@ -30,6 +31,7 @@ const (
 )
 
 type Texture struct {
+	sync.Mutex
 	ID             uint32
 	textureAddress uint32
 }
@@ -79,13 +81,16 @@ func (t *Texture) Use() {
 }
 
 func (t *Texture) LoadImage(file string) {
+	t.Lock()
+	defer t.Unlock()
+
 	imgFile, err := os.Open(file)
 	if err != nil {
 		log.Fatalf("texture %q not found on disk: %v", file, err)
 	}
 	img, _, err := image.Decode(imgFile)
 	if err != nil {
-		log.Fatalf("texture %q not found on disk: %v", file, err)
+		log.Fatalf("texture %q decoding error: %v", file, err)
 	}
 
 	rgba := image.NewRGBA(img.Bounds())
